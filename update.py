@@ -79,6 +79,5 @@ for h in hosts:
         print('Creating entry for ' + h)
 
     db.saveDoc(couchdb, data, h, etag)
-    print data
 
 
