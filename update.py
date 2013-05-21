@@ -2,17 +2,9 @@ import sys
 sys.path.insert(1, "./lib")
 import json
 import functions
+from config import *
 from owmdns import rresolv
 from couch import Couch
-
-# variables - adapt to your settings here
-
-couchserver = 'openwifimap.net'
-couchport = '80'
-couchdb = 'openwifimap'
-jsoninfosrc = '192.168.2.1'
-
-# End variables
 
 
 # Get data from olsr (latlon file and jsoninfo)
@@ -87,5 +79,6 @@ for h in hosts:
         print('Creating entry for ' + h)
 
     db.saveDoc(couchdb, data, h, etag)
+    print data
 
 
