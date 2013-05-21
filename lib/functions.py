@@ -14,6 +14,7 @@ def get_jsoninfo(host, port, what):
     Returns:
         Dictionary containing the requested info or False if we could not get
         any data.
+
     """
 
     try:
@@ -21,12 +22,22 @@ def get_jsoninfo(host, port, what):
         tn.write("/" + what + "\n")
         raw = tn.read_all()
         tbl = json.loads(raw)
-        print tbl
         return tbl[what]
     except:
         return False
 
-def getLatLon(file):
+def getLatLon(file='/var/run/latlon.js'):
+    """ Read a latlon.js file provided by olsrd
+
+    Args:
+        * file (string): Filename of the latlon file (Default: /var/run/latlon.js)
+
+    Returns:
+        Contents of the latlon file or False if it could not be read.
+
+    """
+
+    latlon = False
     with open(file, 'r') as f:
         info = str(f.read())
         f.closed
@@ -34,6 +45,16 @@ def getLatLon(file):
     return latlon
 
 def getNodes(latlon):
+    """ Parse a latlon file and extract all nodes
+
+    Args:
+        * latlon (string): Contents of a latlon.js file
+
+    Returns:
+        Dictionary containing all nodes
+
+    """
+
     latlondict = {}
 
     for n in latlon:
