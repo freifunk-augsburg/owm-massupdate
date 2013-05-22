@@ -2,4 +2,5 @@ couchserver = 'openwifimap.net'
 couchport = '80'
 couchdb = 'openwifimap'
 jsoninfosrc = '192.168.2.1'
-
+logLevel = 'INFO'
+logFile = './log/owm-massupdate.log'

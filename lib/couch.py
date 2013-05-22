@@ -18,36 +18,15 @@ class Couch:
     def connect(self):
         return httplib.HTTPConnection(self.host, self.port) # No close()
 
-    # Database operations
-
-    def createDb(self, dbName):
-        """Creates a new database on the server"""
-
-        r = self.put(''.join(['/',dbName,'/']), "")
-        return json.loads(r.read())
-
-    def deleteDb(self, dbName):
-        """Deletes the database on the server"""
-
-        r = self.delete(''.join(['/',dbName,'/']))
-        return json.loads(r.read())
-
-    def listDb(self):
-        """List the databases on the server"""
-
-        prettyPrint(self.get('/_all_dbs'))
-
-    def infoDb(self, dbName):
-        """Returns info about the couchDB"""
-        r = self.get(''.join(['/', dbName, '/']))
-        return json.loads(r.read())
-
     # Document operations
 
-    def listDoc(self, dbName):
+    def listDoc(self, dbName, query=None):
         """List all documents in a given database"""
 
-        r = self.get(''.join(['/', dbName, '/', '_all_docs']))
+        if query:
+            r = self.get(''.join(['/', dbName, '/', '?', query]))
+        else:
+            r = self.get(''.join(['/', dbName, '/', '_all_docs']))
         return json.loads(r.read())
 
     def openDoc(self, dbName, docId):
@@ -58,15 +37,19 @@ class Couch:
     def saveDoc(self, dbName, body, docId=None, rev=False):
         """Save/create a document to/in a given database"""
         if docId:
-            r = self.put(''.join(['/', dbName, '/', docId, '?rev=', rev]), str(body))
+            if rev:
+                r = self.put(''.join(['/', dbName, '/', docId, '?rev=', rev]), str(body))
+            else:
+                r = self.put(''.join(['/', dbName, '/', docId]), str(body))
         else:
-            r = self.post(''.join(['/', dbName, '/', '?rev=', rev]), str(body))
+            if rev:
+                r = self.post(''.join(['/', dbName, '/', '?rev=', rev]), str(body))
+            else:
+                r = self.post(''.join(['/', dbName, '/']), str(body))
+
         return json.loads(r.read())
 
     def deleteDoc(self, dbName, docId, rev):
-        # XXX Crashed if resource is non-existent; not so for DELETE on db. Bug?
-        # XXX Does not work any more, on has to specify an revid
-        #     Either do html head to get the recten revid or provide it as parameter
         r = self.delete(''.join(['/', dbName, '/', docId, '?rev=', rev]))
         return json.loads(r.read())
 
