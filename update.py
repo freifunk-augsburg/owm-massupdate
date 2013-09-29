@@ -7,7 +7,7 @@ from owmdns import rresolv
 from couch import Couch
 import log
 import argparse
-
+import requests
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='owm-massupdate help.')
@@ -39,11 +39,21 @@ latlon = functions.getNodes(latlon)
 db = Couch(couchserver, couchport)
 
 # Get all nodes within boundingbox
-nodes_on_map = db.listDoc('_spatial/nodes_essentials', 'bbox=10.571250915527344,48.306947615160205,11.226654052734375,48.43535105606878')['rows']
+payload = {'bbox': bbox}
+spatial = requests.get(apiurl + "/view_nodes_spatial", params=payload)
+
+if spatial.status_code == 200:
+	nodes_on_map = spatial.text
+else:
+	logger.error("Could not get data from " + spatial.url)
+	exit()
+
 
 def get_node(hostname):
+    logger.debug('Try to get node ' + h)
     etag = False
     r = db.openDoc(couchdb, hostname)
+    #logger.debug('Answer: ' + str(r))
     try:
         etag = r['_rev']
     except KeyError:
@@ -71,10 +81,22 @@ for k in jsontbl:
         except KeyError:
             lon = '0.0'
 
+        links = {
+            "neighborLinkQuality": float(k['neighborLinkQuality']),
+            "linkQuality":float(k['linkQuality']),
+            "validityTime":int(k['validityTime']),
+            "remoteIP":k['lastHopIP'],
+            "destAddr":k['lastHopIP'],
+            "linkCost":int(k['tcEdgeCost']),
+            "localIP":k['destinationIP'],
+            "sourceAddr":k['destinationIP'],
+            "destNodeId":lastHop
+        }
+
         if not dest in hosts:
-            hosts[dest] = { 'lat': lat, 'lon': lon, 'links': [{ 'id': lastHop, 'quality': float(k['linkQuality'])}]}
+            hosts[dest] = { 'lat': lat, 'lon': lon, 'links': [links] }
         else:
-            hosts[dest]['links'].append({ 'id': lastHop, 'quality': float(k['linkQuality'])})
+            hosts[dest]['links'].append(links)
 
 if args.u:
     count_update = 0
@@ -88,8 +110,10 @@ if args.u:
             "latitude": float(hosts[h]['lat']),
             "longitude": float(hosts[h]['lon']),
             "updateInterval": 60,
-            "links": hosts[h]['links']
         }
+	data['olsr'] = {}
+	data['olsr']['links'] = hosts[h]['links']
+        print(data)
 
         if etag: # entry exists, skip it
             logger.info('Entry for ' + h + ' already exists, update it.')
@@ -100,10 +124,13 @@ if args.u:
 
         data = json.dumps(data)
 
-        logger.debug("Data sent: " + data)
         count_update = count_update + 1
-        save = db.saveDoc(couchdb, data, h, etag)
-        logger.debug("Data received" + json.dumps(save))
+        update = requests.post(url=apiurl + '/update_node/' + h, data=data)
+        if update.status_code == 200:
+            logger.debug('Successfully updated ' + h)
+        else:
+            logger.warning('Could not update ' + h)
+            logger.warning('returned: ' + update.text + ' Code: ' + str(update.status_code))
 
     logger.info("Updated: " + str(count_update))
 
